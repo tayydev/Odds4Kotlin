@@ -1,10 +1,7 @@
 import org.junit.jupiter.api.Test
 
 import org.junit.jupiter.api.Assertions.*
-import java.util.*
-
 internal class HandTest {
-
     @Test
     fun hierarchy() {
         val sfHand = Hand("AS 2S 3S 4S 5S")
@@ -30,5 +27,20 @@ internal class HandTest {
 
         val pHand = Hand("AS AD 2D 5H 8C 9S")
         assertEquals(pHand.hierarchy().first, Hierarchy.Pair)
+    }
+
+    @Test
+    fun combinations() {
+        val list = listOf(1, 2, 3)
+        assertEquals(combinations(list, maxSize = 2), listOf(listOf(2, 3), listOf(1, 3), listOf(1, 2)))
+        assertEquals(combinations(list, maxSize = 1), listOf(listOf(3), listOf(2), listOf(1)))
+    }
+
+    @Test
+    fun combinationPriority() {
+        val bigHand = Hand("2S KD AD 9D 2C 2H 2D")
+        assertEquals(bigHand.hierarchy().first, Hierarchy.Quads)
+        assertEquals(bigHand.hierarchy().second.first().value, Value.Two)
+        assertEquals(bigHand.hierarchy().second.last().value, Value.Ace)
     }
 }

@@ -1,43 +1,17 @@
 fun main() {
-    println("hello world")
 
-    val cards = arrayOf(
-        Card(Value.Jack, Suit.Clubs),
-        Card(Value.Eight, Suit.Spades),
-        Card(Value.Ace, Suit.Hearts)
-    )
-
-    val royal = listOf(
-        Card(Value.Ace, Suit.Diamonds),
-        Card(Value.King, Suit.Diamonds),
-        Card(Value.Jack, Suit.Diamonds),
-        Card(Value.Queen, Suit.Diamonds),
-        Card(Value.Ten, Suit.Diamonds),
-    )
-
-    val straight = listOf(
-        Card(Value.Two, Suit.Diamonds),
-        Card(Value.Four, Suit.Diamonds),
-        Card(Value.Three, Suit.Diamonds),
-        Card(Value.Ace, Suit.Diamonds),
-        Card(Value.Five, Suit.Diamonds),
-    )
-
-    val arr = listOf(Hand(royal), Hand(straight))
-
-    println(arr.max())
-
-    val testing = Hand(straight)
-
-    println("${testing.isFlush()}, ${testing.isStraight()}")
-
-    println(cards.max().toString())
 }
 
-data class Hand(private var cards: List<Card>): Comparable<Hand> {
-    init {
-        //todo find best hand
-    }
+fun <T> combinations(cards: List<T>, maxSize: Int = 5): List<List<T>> {
+    if(cards.size == maxSize) return listOf(cards)
+    return cards
+        .map { cards.minus(it) }
+        .flatMap { combinations(it, maxSize) }
+        .distinct()
+}
+
+class Hand(cards: List<Card>): Comparable<Hand> {
+    val cards = combinations(cards).maxBy { Hand(it) }
 
     fun hierarchy(): Pair<Hierarchy, List<Card>> {
         if(isFlush() && isStraight()) return Hierarchy.StraightFlush to
