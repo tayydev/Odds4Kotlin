@@ -1,6 +1,41 @@
 fun main() {
-
+    val deck = Deck()
+    for(i in 0 until 4) deck.removeFirst()
+    val combos = fastCombinations(deck, desiredSize = 5)
+    print("Done")
 }
+
+class Game(val hands:List<Hand>, val board: List<Card> = emptyList(), val burns:List<Card> = emptyList()) {
+    val deck = Deck()
+
+    init {
+        deck.removeAll(hands.flatMap { it.cards })
+        deck.removeAll(board)
+        deck.removeAll(burns)
+    }
+
+    fun odds(): Map<Hand, Result> { // wins - ties - outcomes
+        val map = mutableMapOf<Hand, Result>()
+        val options = combinations(deck, maxSize = 5 - board.size)
+        for(opt in options) {
+            hands.map { map.computeIfAbsent(it) { Result() }.total++ }
+            val tempBoard = board.plus(opt)
+            val handMaps = hands.associateWith { Hand(it.cards.plus(tempBoard)) }
+            val bestHand = handMaps.values.max()
+            handMaps
+                .filterValues { it == bestHand }
+                .keys.forEach { hand: Hand -> map[hand]!!.wins++ }
+        }
+        return map
+    }
+}
+
+data class Result(var wins: Int = 0, var ties: Int = 0, var total: Int = 0)
+
+class Deck: ArrayList<Card>(makeDeck())
+private fun makeDeck() = Value.values()
+    .flatMap { face -> Suit.values().map { face to it } }
+    .map { (face, suit) -> Card(face, suit) }
 
 fun <T> combinations(cards: List<T>, maxSize: Int = 5): List<List<T>> {
     if(cards.size == maxSize) return listOf(cards)
@@ -10,8 +45,45 @@ fun <T> combinations(cards: List<T>, maxSize: Int = 5): List<List<T>> {
         .distinct()
 }
 
+//fun <T> fastCombinations(inputs: List<T>, desiredSize: Int): List<List<T>> {
+//    val returnable = mutableListOf<Pair<T, T>>()
+//    for(item in inputs) {
+//        for(second in inputs.minus(item)) {
+//            returnable.add(item to second)
+//        }
+//    }
+//}
+fun <T> fastCombinations(inputs: List<T>, desiredSize: Int): Set<Set<T>> {
+    val start = mutableSetOf<Set<T>>()
+    for(item in inputs) {
+        start.add(setOf(item))
+    }
+    return fastCombinationsHelper(inputs.toSet(), start, desiredSize)
+}
+
+//todo this doesn't work with desiredSize > 2
+fun <T> fastCombinationsHelper(inputs: Set<T>, progress: Set<Set<T>>, desiredSize: Int): Set<Set<T>> {
+    val nextIter = mutableSetOf<Set<T>>()
+    var count = 0
+    for(set in progress) {
+        for(item in inputs.minus(set)) {
+            nextIter.add(set.plus(item))
+
+            count++
+            println("in $count of ${progress.size * (inputs.size-set.size)}")
+        }
+    }
+    if(nextIter.first().size == desiredSize) return nextIter
+    return fastCombinationsHelper(inputs, nextIter, desiredSize)
+}
+
+
+fun deckCombinations(input: Deck) {
+
+}
+
 class Hand(cards: List<Card>): Comparable<Hand> {
-    val cards = combinations(cards).maxBy { Hand(it) }
+    val cards = if (cards.size == 5) combinations(cards).maxBy { Hand(it) } else cards
 
     fun hierarchy(): Pair<Hierarchy, List<Card>> {
         if(isFlush() && isStraight()) return Hierarchy.StraightFlush to
@@ -59,6 +131,21 @@ class Hand(cards: List<Card>): Comparable<Hand> {
     }
     private fun priorityCompare(compared: List<Int>): Int {
         return compared.firstOrNull { it != 0 } ?: 0
+    }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as Hand
+
+        if (cards.containsAll(other.cards) && other.cards.containsAll(cards)) return true
+
+        return false
+    }
+
+    override fun hashCode(): Int {
+        return cards.hashCode()
     }
 }
 

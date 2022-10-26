@@ -35,6 +35,13 @@ internal class HandTest {
         assertEquals(combinations(list, maxSize = 2), listOf(listOf(2, 3), listOf(1, 3), listOf(1, 2)))
         assertEquals(combinations(list, maxSize = 1), listOf(listOf(3), listOf(2), listOf(1)))
     }
+    
+    @Test 
+    fun fastCombinations() {
+        val list = listOf(1, 2, 3)
+        assertEquals(fastCombinations(list, 2), setOf(setOf(2, 3), setOf(1, 3), setOf(1, 2)))
+        assertEquals(fastCombinations(list, 1), setOf(setOf(3), setOf(2), setOf(1)))
+    }
 
     @Test
     fun combinationPriority() {
