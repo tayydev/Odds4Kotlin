@@ -1,7 +1,8 @@
 fun main() {
     val deck = Deck()
     for(i in 0 until 4) deck.removeFirst()
-    val combos = fastCombinations(deck, desiredSize = 5)
+    //val combos = fastCombinations(deck, desiredSize = 5)
+    val combos = linkedCombinations(deck, desiredSize = 5)
     print("Done")
 }
 
@@ -77,9 +78,30 @@ fun <T> fastCombinationsHelper(inputs: Set<T>, progress: Set<Set<T>>, desiredSiz
     return fastCombinationsHelper(inputs, nextIter, desiredSize)
 }
 
+class LinkedNode<T>(val content: T, val next: LinkedNode<T>? = null) {
+    fun size(): Int = next?.size()?.plus(1) ?: 1
+    fun contains(oContent: T): Boolean = content!! == oContent || next?.contains(oContent) ?: false
+}
 
-fun deckCombinations(input: Deck) {
+fun <T> linkedCombinations(inputs: Iterable<T>, desiredSize: Int): Set<LinkedNode<T>> =
+    linkedCombinationsHelper(inputs.toSet(), inputs.map { LinkedNode(it) }.toSet(), desiredSize)
 
+fun <T> linkedCombinationsHelper(inputs: Set<T>, progress: Set<LinkedNode<T>>, desiredSize: Int): Set<LinkedNode<T>> {
+    val nextIter = mutableSetOf<LinkedNode<T>>()
+
+    var count = 0
+
+    for(set in progress) {
+        for(item in inputs) {
+            if(set.contains(item)) continue
+            nextIter.add(LinkedNode(item, set)) //add to bottom of tree
+
+            count++
+            println("in $count of ${progress.size * (inputs.size)}" )
+        }
+    }
+    if(nextIter.first().size() == desiredSize) return nextIter
+    return linkedCombinationsHelper(inputs, nextIter, desiredSize)
 }
 
 class Hand(cards: List<Card>): Comparable<Hand> {
