@@ -30,6 +30,13 @@ internal class HandTest {
     }
 
     @Test
+    fun compareToEqual() {
+        val pHand = Hand("AS AD 2D 5H 8C 9S")
+        val pHandEquiv = Hand("AS AD 2D 5H 8H 9C")
+        assertEquals(0, pHand.compareTo(pHandEquiv))
+    }
+
+    @Test
     fun combinations() {
         val list = listOf(1, 2, 3)
         assertEquals(combinations(list, maxSize = 2), listOf(listOf(2, 3), listOf(1, 3), listOf(1, 2)))

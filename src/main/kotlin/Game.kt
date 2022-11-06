@@ -1,8 +1,36 @@
+import kotlin.system.measureTimeMillis
+
 fun main() {
+//    val a = 1L
+//    val b = 3
+//
+//    val combined = a or (1L shl b)
+//    println(combined)
+//
+//    val exists = combined and (1L shl b)
+//    val exists2 = combined and (1L shl 2)
+//    val exists3 = combined and (1L shl 0)
+//
+//    val list = LinkedCardNode(Card("AD"), LinkedCardNode(Card("AS")))
+//    val hash = list.hash
+//    println(hash)
+//
+//    val compare = list.contains(Card("AD"))
+//    val otherCompare = list.contains(Card("AC"))
+//    println("stop")
     val deck = Deck()
-    for(i in 0 until 4) deck.removeFirst()
-    //val combos = fastCombinations(deck, desiredSize = 5)
-    val combos = linkedCombinations(deck, desiredSize = 5)
+    for(i in 0 until 16) deck.removeFirst()
+    var sizeA = 0
+    var sizeB = 0
+    val reg = measureTimeMillis {
+        val combos = fastCombinations(deck, desiredSize = 5)
+        sizeA = combos.size
+    }
+    val linked = measureTimeMillis {
+        val combos = linkedCombinations(deck, desiredSize = 5)
+        sizeB = combos.size
+    }
+    println("$reg (size $sizeA), $linked (size $sizeB)")
     print("Done")
 }
 
@@ -77,24 +105,61 @@ fun <T> fastCombinationsHelper(inputs: Set<T>, progress: Set<Set<T>>, desiredSiz
     if(nextIter.first().size == desiredSize) return nextIter
     return fastCombinationsHelper(inputs, nextIter, desiredSize)
 }
+fun <T> fastCombinationsHelper2(inputs: Set<T>, progress: Set<Set<T>>, desiredSize: Int): Set<Set<T>> {
+    var cSet = progress
+    var nSet: MutableSet<Set<T>> = mutableSetOf()
+    var count = 0
+    while(true) {
+        for(set in cSet) {
+            for(item in inputs.minus(set)) {
+                nSet.add(set.plus(item))
 
-class LinkedNode<T>(val content: T, val next: LinkedNode<T>? = null) {
-    fun size(): Int = next?.size()?.plus(1) ?: 1
-    fun contains(oContent: T): Boolean = content!! == oContent || next?.contains(oContent) ?: false
+                count++
+                println("in $count of ${cSet.size * (inputs.size-set.size)}")
+            }
+        }
+        if(nSet.first().size == desiredSize) return nSet
+        else {
+            cSet = nSet
+            nSet = mutableSetOf()
+        }
+    }
+//
+//    if(nextIter.first().size == desiredSize) return nextIter
+//    return fastCombinationsHelper(inputs, nextIter, desiredSize)
 }
 
-fun <T> linkedCombinations(inputs: Iterable<T>, desiredSize: Int): Set<LinkedNode<T>> =
-    linkedCombinationsHelper(inputs.toSet(), inputs.map { LinkedNode(it) }.toSet(), desiredSize)
+class LinkedCardNode(val content: Card, val next: LinkedCardNode? = null, val hash: Long = (next?.hash ?: 0) or (1L shl content.ordinal())) {
+    fun size(): Int = next?.size()?.plus(1) ?: 1
+    fun contains(other: Card): Boolean = hash and (1L shl other.ordinal()) > 0
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
 
-fun <T> linkedCombinationsHelper(inputs: Set<T>, progress: Set<LinkedNode<T>>, desiredSize: Int): Set<LinkedNode<T>> {
-    val nextIter = mutableSetOf<LinkedNode<T>>()
+        other as LinkedCardNode
+
+        if (hash != other.hash) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        return hash.hashCode()
+    }
+}
+
+fun linkedCombinations(inputs: Iterable<Card>, desiredSize: Int): Set<LinkedCardNode> =
+    linkedCombinationsHelper(inputs.toSet(), inputs.map { LinkedCardNode(it) }.toSet(), desiredSize)
+
+fun linkedCombinationsHelper(inputs: Set<Card>, progress: Set<LinkedCardNode>, desiredSize: Int): Set<LinkedCardNode> {
+    val nextIter = mutableSetOf<LinkedCardNode>()
 
     var count = 0
 
-    for(set in progress) {
+    for(ll in progress) {
         for(item in inputs) {
-            if(set.contains(item)) continue
-            nextIter.add(LinkedNode(item, set)) //add to bottom of tree
+            if(ll.contains(item)) continue
+            nextIter.add(LinkedCardNode(item, ll)) //add to bottom of tree
 
             count++
             println("in $count of ${progress.size * (inputs.size)}" )
@@ -175,6 +240,8 @@ data class Card(val value: Value, val suit: Suit): Comparable<Card> {
     override fun compareTo(other: Card): Int {
         return value.compareTo(other.value)
     }
+
+    fun ordinal() = value.ordinal + 13 * suit.ordinal
 }
 
 enum class Hierarchy {
