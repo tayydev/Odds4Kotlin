@@ -19,7 +19,7 @@ fun main() {
 //    val otherCompare = list.contains(Card("AC"))
 //    println("stop")
     val deck = Deck()
-    for(i in 0 until 16) deck.removeFirst()
+//    for(i in 0 until 16) deck.()
     var sizeA = 0
     var sizeB = 0
     val reg = measureTimeMillis {
@@ -43,9 +43,9 @@ class Game(val hands:List<Hand>, val board: List<Card> = emptyList(), val burns:
         deck.removeAll(burns)
     }
 
-    fun odds(): Map<Hand, Result> { // wins - ties - outcomes
+    fun odds(returnSize: Int = 10000): Map<Hand, Result> { // wins - ties - outcomes
         val map = mutableMapOf<Hand, Result>()
-        val options = combinations(deck, maxSize = 5 - board.size)
+        val options = randomCombinations(deck, returnSize, 5 - board.size)
         for(opt in options) {
             hands.map { map.computeIfAbsent(it) { Result() }.total++ }
             val tempBoard = board.plus(opt)
@@ -61,7 +61,7 @@ class Game(val hands:List<Hand>, val board: List<Card> = emptyList(), val burns:
 
 data class Result(var wins: Int = 0, var ties: Int = 0, var total: Int = 0)
 
-class Deck: ArrayList<Card>(makeDeck())
+class Deck: HashSet<Card>(makeDeck())
 private fun makeDeck() = Value.values()
     .flatMap { face -> Suit.values().map { face to it } }
     .map { (face, suit) -> Card(face, suit) }
@@ -74,6 +74,11 @@ fun <T> combinations(cards: List<T>, maxSize: Int = 5): List<List<T>> {
         .distinct()
 }
 
+fun <T> randomCombinations(cards: Set<T>, returnSize: Int, individualSize: Int): List<Set<T>> {
+    return arrayOfNulls<Set<T>>(returnSize)
+        .map { cards.shuffled().take(individualSize).toSet() }
+}
+
 //fun <T> fastCombinations(inputs: List<T>, desiredSize: Int): List<List<T>> {
 //    val returnable = mutableListOf<Pair<T, T>>()
 //    for(item in inputs) {
@@ -82,7 +87,7 @@ fun <T> combinations(cards: List<T>, maxSize: Int = 5): List<List<T>> {
 //        }
 //    }
 //}
-fun <T> fastCombinations(inputs: List<T>, desiredSize: Int): Set<Set<T>> {
+fun <T> fastCombinations(inputs: Set<T>, desiredSize: Int): Set<Set<T>> {
     val start = mutableSetOf<Set<T>>()
     for(item in inputs) {
         start.add(setOf(item))
@@ -170,7 +175,15 @@ fun linkedCombinationsHelper(inputs: Set<Card>, progress: Set<LinkedCardNode>, d
 }
 
 class Hand(cards: List<Card>): Comparable<Hand> {
-    val cards = if (cards.size == 5) combinations(cards).maxBy { Hand(it) } else cards
+    val cards =
+        if (cards.size >= 5) {
+            combinations(cards).maxBy { Hand(it) }
+        }
+        else if (cards.size > 2) {
+            throw Exception("Unable to parse Hand with 5 > size > 2")
+        } else {
+            cards
+        }
 
     fun hierarchy(): Pair<Hierarchy, List<Card>> {
         if(isFlush() && isStraight()) return Hierarchy.StraightFlush to
@@ -192,22 +205,22 @@ class Hand(cards: List<Card>): Comparable<Hand> {
         return Hierarchy.HighCard to
                 cards.setHelper()
     }
-    fun isFlush(): Boolean {
+    private fun isFlush(): Boolean {
         return cards.all { it.suit == cards.first().suit } //assumes one card
     }
 
-    fun isStraight(): Boolean {
+    private fun isStraight(): Boolean {
         return cards.sorted().zipWithNext().all { (card1, card2) ->
             card1.value.ordinal + 1 == card2.value.ordinal ||
             card2.value == Value.Ace && cards.minOf { it }.value == Value.Two
         }
     }
 
-    fun isNPair(num: Int): Boolean { //this is picky
+    private fun isNPair(num: Int): Boolean { //this is picky
         return cards.groupBy { it.value }.any { it.value.size == num }
     }
 
-    fun isTwoPair(): Boolean {
+    private fun isTwoPair(): Boolean {
         return cards.groupBy { it.value }.count { it.value.size == 2 } == 2
     }
 
@@ -233,6 +246,10 @@ class Hand(cards: List<Card>): Comparable<Hand> {
 
     override fun hashCode(): Int {
         return cards.hashCode()
+    }
+
+    override fun toString(): String {
+        return cards.toString()
     }
 }
 
