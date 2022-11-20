@@ -5,6 +5,6 @@ internal class GameTest {
     @Test
     fun odds() {
         val game = Game(listOf(Hand("AD AS"), Hand("KS QS")))
-        print(game.odds())
+        print(game.odds(10000))
     }
 }

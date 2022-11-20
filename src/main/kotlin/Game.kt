@@ -19,9 +19,10 @@ fun main() {
 //    val otherCompare = list.contains(Card("AC"))
 //    println("stop")
     val deck = Deck()
-//    for(i in 0 until 16) deck.()
+    for(i in 0 until 16) deck.remove(deck.first())
     var sizeA = 0
     var sizeB = 0
+    var sizeC = 0
     val reg = measureTimeMillis {
         val combos = fastCombinations(deck, desiredSize = 5)
         sizeA = combos.size
@@ -30,7 +31,11 @@ fun main() {
         val combos = linkedCombinations(deck, desiredSize = 5)
         sizeB = combos.size
     }
-    println("$reg (size $sizeA), $linked (size $sizeB)")
+    val fastLinked = measureTimeMillis {
+        val combos = fastLinkedCombinations(deck, desiredSize = 5)
+        sizeC = combos.size
+    }
+    println("$reg (size $sizeA), $linked (size $sizeB), $fastLinked (size $sizeC)")
     print("Done")
 }
 
@@ -50,10 +55,8 @@ class Game(val hands:List<Hand>, val board: List<Card> = emptyList(), val burns:
             hands.map { map.computeIfAbsent(it) { Result() }.total++ }
             val tempBoard = board.plus(opt)
             val handMaps = hands.associateWith { Hand(it.cards.plus(tempBoard)) }
-            val bestHand = handMaps.values.max()
-            handMaps
-                .filterValues { it == bestHand }
-                .keys.forEach { hand: Hand -> map[hand]!!.wins++ }
+            val bestHand = handMaps.maxBy { it.value }.key
+            map[bestHand]!!.wins++
         }
         return map
     }
@@ -172,6 +175,36 @@ fun linkedCombinationsHelper(inputs: Set<Card>, progress: Set<LinkedCardNode>, d
     }
     if(nextIter.first().size() == desiredSize) return nextIter
     return linkedCombinationsHelper(inputs, nextIter, desiredSize)
+}
+
+fun fastLinkedCombinations(inputs: Iterable<Card>, desiredSize: Int): Set<LinkedCardSet> =
+    fastLinkedCombinationsHelper(inputs.toSet(), inputs.map { LinkedCardSet(it) }.toSet(), desiredSize)
+
+fun fastLinkedCombinationsHelper(inputs: Set<Card>, progress: Set<LinkedCardSet>, desiredSize: Int): Set<LinkedCardSet> {
+    val nextIter = mutableSetOf<LinkedCardSet>()
+
+    var count = 0
+
+    for(ll in progress) {
+        for(item in inputs) {
+            if(ll.contains(item)) continue
+            nextIter.add(ll.copyAndAddElement(item)) //add to bottom of tree
+
+            count++
+            println("in $count of ${progress.size * (inputs.size)}" )
+        }
+    }
+    if(nextIter.first().size() == desiredSize) return nextIter
+    return fastLinkedCombinationsHelper(inputs, nextIter, desiredSize)
+}
+
+fun LinkedCardSet(card: Card) = LinkedCardSet(1L shl card.ordinal())
+@JvmInline
+value class LinkedCardSet(private val contents: Long) {
+    fun copyAndAddElement(card: Card) = LinkedCardSet(contents or (1L shl card.ordinal()))
+    fun contains(card: Card) = (contents and (1L shl card.ordinal())) > 0
+    fun contents() = Deck().filter { contains(it) }
+    fun size() = contents.countOneBits()
 }
 
 class Hand(cards: List<Card>): Comparable<Hand> {

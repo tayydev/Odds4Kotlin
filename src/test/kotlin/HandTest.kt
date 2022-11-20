@@ -45,9 +45,9 @@ internal class HandTest {
     
     @Test 
     fun fastCombinations() {
-        val list = listOf(1, 2, 3)
-        assertEquals(fastCombinations(list, 2), setOf(setOf(2, 3), setOf(1, 3), setOf(1, 2)))
-        assertEquals(fastCombinations(list, 1), setOf(setOf(3), setOf(2), setOf(1)))
+        val set = setOf(1, 2, 3)
+        assertEquals(fastCombinations(set, 2), setOf(setOf(2, 3), setOf(1, 3), setOf(1, 2)))
+        assertEquals(fastCombinations(set, 1), setOf(setOf(3), setOf(2), setOf(1)))
     }
 
     @Test
