@@ -38,7 +38,7 @@ internal class HandTest {
 
     @Test
     fun combinations() {
-        val list = listOf(1, 2, 3)
+        val list = setOf(1, 2, 3)
         assertEquals(combinations(list, maxSize = 2), listOf(listOf(2, 3), listOf(1, 3), listOf(1, 2)))
         assertEquals(combinations(list, maxSize = 1), listOf(listOf(3), listOf(2), listOf(1)))
     }
