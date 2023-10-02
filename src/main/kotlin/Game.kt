@@ -74,13 +74,13 @@ class Hand(cards: Set<Card>): Comparable<Hand> {
         }
 
     fun numericalHierarchy(): Int {
-        val base = hierarchy()
-        return base.first.ordinal * 13 * 13 * 13 * 13 +
-                (base.second.getOrNull(0)?.value?.ordinal ?: 0) * 13 * 13 * 13 +
-                (base.second.getOrNull(1)?.value?.ordinal ?: 0) * 13 * 13 +
-                (base.second.getOrNull(2)?.value?.ordinal ?: 0) * 13 +
-                (base.second.getOrNull(3)?.value?.ordinal ?: 0) +
-                (base.second.getOrNull(4)?.value?.ordinal ?: 0)
+        val list = listHierarchy()
+        return  list[0] * 13 * 13 * 13 * 13 * 13 + //hierarchy
+                list[1] * 13 * 13 * 13 * 13 + //kicker
+                list[2] * 13 * 13 * 13 + //kicker
+                list[3] * 13 * 13 + //kicker
+                list[4] * 13 + //kicker
+                list[5] //kicker
     }
     fun listHierarchy(): List<Int> {
         val base = hierarchy()
@@ -91,25 +91,42 @@ class Hand(cards: Set<Card>): Comparable<Hand> {
                 (base.second.getOrNull(3)?.value?.ordinal ?: 0),
                 (base.second.getOrNull(4)?.value?.ordinal ?: 0))
     }
-    fun hierarchy(): Pair<Hierarchy, List<Card>> {
-        if(isFlush() && isStraight()) return Hierarchy.StraightFlush to
-                cards.setHelper()
-        if(isNPair(4)) return Hierarchy.Quads to
-                cards.setHelper(4).plus(cards.setHelper(1))
-        if(isNPair(3) && isNPair(2)) return Hierarchy.FullHouse to
-                cards.setHelper(3).plus(cards.setHelper(2))
-        if(isFlush()) return Hierarchy.Flush to
-                cards.setHelper()
-        if(isStraight()) return Hierarchy.Straight to
-                cards.setHelper()
-        if(isNPair(3)) return Hierarchy.Trips to
-                cards.setHelper(3).plus(cards.setHelper(1))
-        if(isTwoPair()) return Hierarchy.TwoPair to
-                cards.setHelper(2).plus(cards.setHelper(1))
-        if(isNPair(2)) return Hierarchy.Pair to
-                cards.setHelper(2).plus(cards.setHelper(1))
-        return Hierarchy.HighCard to
-                cards.setHelper()
+    fun hierarchy(): Pair<Hierarchy, List<Card>> { //TODO: i think capping size is irrelevant when this method only gets called on five card hands
+        if(isFlush() && isStraight()) {
+            val kickers = if(isWheel()) cards.setHelper().drop(1) else cards.setHelper() //drop the ace for wheels
+            return Hierarchy.StraightFlush to kickers
+        }
+        if(isNPair(4)) {
+            val quads = cards.setHelper(4).capSize(1)
+            val kicker = cards.setHelper(1).capSize(1)
+            return Hierarchy.Quads to quads + kicker
+        }
+        if(isNPair(3) && isNPair(2)) {
+            val trips = cards.setHelper(3).capSize(3)
+            val pairs = cards.setHelper(2).capSize(2)
+            return Hierarchy.FullHouse to trips + pairs
+        }
+        if(isFlush()) return Hierarchy.Flush to cards.setHelper()
+        if(isStraight()) {
+            val kickers = if(isWheel()) cards.setHelper().drop(1) else cards.setHelper() //drop the ace for wheels
+            return Hierarchy.Straight to kickers
+        }
+        if(isNPair(3)){
+            val trips = cards.setHelper(3).capSize(1)
+            val kickers = cards.setHelper(1).capSize(2)
+            return Hierarchy.Trips to trips + kickers
+        }
+        if(isTwoPair()) {
+            val pairs = cards.setHelper(2).capSize(4)
+            val kicker = cards.setHelper(1).capSize(1)
+            return Hierarchy.TwoPair to pairs + kicker
+        }
+        if(isNPair(2)) {
+            val pair = cards.setHelper(2).capSize(2) //this capListSize is irrelevant but whatever
+            val kickers = cards.setHelper(1).capSize(3)
+            return Hierarchy.Pair to pair + kickers
+        }
+        return Hierarchy.HighCard to cards.setHelper()
     }
     private fun isFlush(): Boolean {
         return cards.all { it.suit == cards.first().suit } //assumes one card
@@ -122,6 +139,12 @@ class Hand(cards: Set<Card>): Comparable<Hand> {
         fun testSequence(list: List<Int>) = list.sorted().zipWithNext().all { (val1, val2) -> val1 + 1 == val2 }
 
         return testSequence(lowAce) || testSequence(highAce)
+    }
+
+    private fun isWheel(): Boolean {
+        if(!isStraight()) return false
+        val values = cards.map { it.value }
+        return values.contains(Value.Ace) && values.contains(Value.Two)
     }
 
     private fun isNPair(num: Int): Boolean { //this is picky
@@ -205,5 +228,10 @@ private fun Set<Card>.setHelper(num: Int = 1): List<Card> {
         .filter {
             it.value.size == num
         }
-    return sets.map { it.value.first() }.sortedDescending()
+    return sets.flatMap { it.value }.sortedDescending()
+}
+
+fun <T> List<T>.capSize(cap: Int): List<T> {
+    val cappedSize = minOf(cap, this.size)
+    return this.subList(0, cappedSize)
 }
