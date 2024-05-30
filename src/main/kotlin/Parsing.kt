@@ -3,7 +3,7 @@ private val translateV = mapOf(
     "K" to Value.King,
     "Q" to Value.Queen,
     "J" to Value.Jack,
-    "10" to Value.Ten,
+    "T" to Value.Ten,
     "9" to Value.Nine,
     "8" to Value.Eight,
     "7" to Value.Seven,

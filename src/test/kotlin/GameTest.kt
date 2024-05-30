@@ -39,9 +39,25 @@ internal class GameTest {
 
     @Test
     fun compareEquivalentThreePairHands() {
-        val tHand = Hand("AD AS 2D 2S 7D 7S 9H")
-        val tHandEquiv = Hand("AD AS 4D 4S 7D 7S 9H")
+        //these hands should tie
+        val tHand = Hand("AD AS 2D 2S 7D 7S 9H") //because this pair of twos is irrelevant
+        val tHandEquiv = Hand("AD AS 4D 4S 7D 7S 9H") //and this pair of fours is also
         assertEquals(0, tHand.compareTo(tHandEquiv))
+    }
+
+    @Test
+    fun compareDifferentThreePairHands() {
+        //this hand should get ranked higher because one of the threes acts as a kicker
+        val tHand = Hand("AD AS 3D 3S 7D 7S 2H")
+        val tHandEquiv = Hand("AD AS 4D 4S 7D 7S 2H")
+        assertEquals(-1, tHand.compareTo(tHandEquiv))
+    }
+
+    @Test
+    fun compareDifferentTwoPairHands() {
+        val tHand = Hand("AD AS 3D 5S 7D 7S 2H")
+        val tHandEquiv = Hand("AD AS 4D 5S 6D 6S 2H")
+        assertEquals(1, tHand.compareTo(tHandEquiv))
     }
 
     @Test
@@ -80,7 +96,7 @@ internal class GameTest {
 
     @Test
     fun numericalHierarchy() {
-        randomCombinations(Deck(), 10000, 7)
+        randomCombinations(makeDeck(), 10000, 7)
             .map { Hand(it.toList()) }
             .sortedBy { it.numericalHierarchy() }
             .forEach {
