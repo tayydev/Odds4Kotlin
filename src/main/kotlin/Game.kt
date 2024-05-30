@@ -242,6 +242,10 @@ data class Card(val value: Value, val suit: Suit) : Comparable<Card> {
 
     @Suppress("unused")
     val ordinal = value.ordinal + 13 * suit.ordinal
+
+    override fun toString(): String {
+        return "$value of $suit"
+    }
 }
 
 enum class Hierarchy {
