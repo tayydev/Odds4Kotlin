@@ -30,4 +30,28 @@ fun Card(code: String) = Card(findValue(code), findSuit(code))
 
 fun Hand(code: String) = Hand(findCards(code))
 
-fun findCards(code: String) = code.split(" ").map { Card(it) }.toSet()
+fun Game(code: String): Game {
+    val board = findCards(
+        code.split("(").first()
+    )
+    val burns = findCards(
+        code.split("(")[1].split(")")[0] //lol
+    )
+    val hands = code.uppercase().split(")")[1].split("V").map { Hand(it) }.toSet()
+
+    return Game(
+        hands=hands,
+        board=board,
+        burns=burns
+    )
+}
+
+fun findCards(code: String): Set<Card> {
+    val sanitized = code.uppercase().trim()
+    //space based mapping
+    return if(sanitized.contains(" ")) sanitized.split(" ").map { Card(it) }.toSet()
+    else if(sanitized.length % 2 == 0) {
+        sanitized.chunked(2).map { Card(it) }.toSet()
+    }
+    else throw Exception("Invalid card code")
+}
