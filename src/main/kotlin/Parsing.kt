@@ -1,5 +1,6 @@
 fun Card(code: String) = Card(findValue(code), findSuit(code))
 fun Hand(code: String) = Hand(findCards(code))
+
 private val translateV = mapOf(
     "A" to Value.Ace,
     "K" to Value.King,
@@ -28,4 +29,4 @@ private fun findSuit(str: String): Suit {
     return translateS[translateS.keys.first { str.contains(it) }]!!
 }
 
-private fun findCards(code: String) = code.split(" ").map { Card(it) }.toSet()
+private fun findCards(code: String) = code.split(" ").map { Card(it) }

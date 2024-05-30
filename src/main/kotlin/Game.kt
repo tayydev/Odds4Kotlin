@@ -18,40 +18,25 @@ fun main() {
 //    val compare = list.contains(Card("AD"))
 //    val otherCompare = list.contains(Card("AC"))
 //    println("stop")
-//    val deck = Deck()
-//    for(i in 0 until 4) deck.remove(deck.first())
-//    val converge = ConvergingDeck(deck, 5)
-//    val set = mutableSetOf<Set<Card>>()
-//    while(true) {
-//        val next = converge.nextRunout()
-//        println(next)
-//        assert(!set.contains(next))
-//        set.add(next)
-//    }
-//    var sizeA = 0
-//    var sizeB = 0
-//    var sizeC = 0
-//    val reg = measureTimeMillis {
-//        val combos = fastCombinations(deck, desiredSize = 5)
-//        sizeA = combos.size
-//    }
-//    val linked = measureTimeMillis {
-//        val combos = linkedCombinations(deck, desiredSize = 5)
-//        sizeB = combos.size
-//    }
-//    val fastLinked = measureTimeMillis {
-//        val combos = fastLinkedCombinations(deck, desiredSize = 5)
-//        sizeC = combos.size
-//    }
-//    println("$reg (size $sizeA), $linked (size $sizeB), $fastLinked (size $sizeC)")
-//    print("Done")
     val deck = Deck()
-    val size = 5
-    val converge = ConvergingDeck(deck, size)
-    val time = measureTimeMillis {
-        assert(52 * 51 * 50 * 49 * 48 == converge.long().size)
+    for(i in 0 until 16) deck.remove(deck.first())
+    var sizeA = 0
+    var sizeB = 0
+    var sizeC = 0
+    val reg = measureTimeMillis {
+        val combos = fastCombinations(deck, desiredSize = 5)
+        sizeA = combos.size
     }
-    println(time)
+    val linked = measureTimeMillis {
+        val combos = linkedCombinations(deck, desiredSize = 5)
+        sizeB = combos.size
+    }
+    val fastLinked = measureTimeMillis {
+        val combos = fastLinkedCombinations(deck, desiredSize = 5)
+        sizeC = combos.size
+    }
+    println("$reg (size $sizeA), $linked (size $sizeB), $fastLinked (size $sizeC)")
+    print("Done")
 }
 
 class Game(val hands:List<Hand>, val board: List<Card> = emptyList(), val burns:List<Card> = emptyList()) {
@@ -63,32 +48,17 @@ class Game(val hands:List<Hand>, val board: List<Card> = emptyList(), val burns:
         deck.removeAll(burns)
     }
 
-    fun odds(testSize: Int = 10000): Map<Hand, Result> { // wins - ties - outcomes
-        val runouts = randomCombinations(deck, testSize, 5 - board.size)
-
-        val data = mutableMapOf<Hand, Result>()
-        hands.map { data[it] = Result(total = runouts.size) } // create results with totals
-
-        for(runout in runouts) {
-            val resultingBoard = board.plus(runout)
-            val handsToScore = hands.associateWith { startingHand ->
-                val sevenCards = startingHand.cards.plus(resultingBoard)
-                val hand = Hand(sevenCards)
-                return@associateWith hand.numericalHierarchy()
-            }
-            val highestScore = handsToScore.values.max()
-            val handsWithHighestScore = handsToScore.filter { it.value == highestScore }
-            if(handsWithHighestScore.size == 1) {
-                val winningHand = handsWithHighestScore.keys.first()
-                data[winningHand]!!.wins++
-            }
-            else {
-                handsWithHighestScore.keys.map { tiedHand ->
-                    data[tiedHand]!!.ties++
-                }
-            }
+    fun odds(returnSize: Int = 10000): Map<Hand, Result> { // wins - ties - outcomes
+        val map = mutableMapOf<Hand, Result>()
+        val options = randomCombinations(deck, returnSize, 5 - board.size)
+        for(opt in options) {
+            hands.map { map.computeIfAbsent(it) { Result() }.total++ }
+            val tempBoard = board.plus(opt)
+            val handMaps = hands.associateWith { Hand(it.cards.plus(tempBoard)) }
+            val bestHand = handMaps.maxBy { it.value }.key
+            map[bestHand]!!.wins++
         }
-        return data
+        return map
     }
 }
 
@@ -99,22 +69,17 @@ private fun makeDeck() = Value.values()
     .flatMap { face -> Suit.values().map { face to it } }
     .map { (face, suit) -> Card(face, suit) }
 
-fun <T> combinations(cards: Set<T>, maxSize: Int = 5): Set<Set<T>> {
-    if(cards.size == maxSize) return setOf(cards)
+fun <T> combinations(cards: List<T>, maxSize: Int = 5): List<List<T>> {
+    if(cards.size == maxSize) return listOf(cards)
     return cards
         .map { cards.minus(it) }
         .flatMap { combinations(it, maxSize) }
-        .toSet()
+        .distinct()
 }
 
 fun <T> randomCombinations(cards: Set<T>, returnSize: Int, individualSize: Int): List<Set<T>> {
     return arrayOfNulls<Set<T>>(returnSize)
-        .map {
-            cards
-                .shuffled()
-                .take(individualSize)
-                .toSet()
-        }
+        .map { cards.shuffled().take(individualSize).toSet() }
 }
 
 //fun <T> fastCombinations(inputs: List<T>, desiredSize: Int): List<List<T>> {
@@ -172,9 +137,9 @@ fun <T> fastCombinationsHelper2(inputs: Set<T>, progress: Set<Set<T>>, desiredSi
 //    return fastCombinationsHelper(inputs, nextIter, desiredSize)
 }
 
-class LinkedCardNode(val content: Card, val next: LinkedCardNode? = null, val hash: Long = (next?.hash ?: 0) or (1L shl content.ordinal)) {
+class LinkedCardNode(val content: Card, val next: LinkedCardNode? = null, val hash: Long = (next?.hash ?: 0) or (1L shl content.ordinal())) {
     fun size(): Int = next?.size()?.plus(1) ?: 1
-    fun contains(other: Card): Boolean = hash and (1L shl other.ordinal) > 0
+    fun contains(other: Card): Boolean = hash and (1L shl other.ordinal()) > 0
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (javaClass != other?.javaClass) return false
@@ -233,17 +198,16 @@ fun fastLinkedCombinationsHelper(inputs: Set<Card>, progress: Set<LinkedCardSet>
     return fastLinkedCombinationsHelper(inputs, nextIter, desiredSize)
 }
 
-fun LinkedCardSet(card: Card) = LinkedCardSet(1L shl card.ordinal)
+fun LinkedCardSet(card: Card) = LinkedCardSet(1L shl card.ordinal())
 @JvmInline
 value class LinkedCardSet(private val contents: Long) {
-    fun copyAndAddElement(card: Card) = LinkedCardSet(contents or (1L shl card.ordinal))
-    fun contains(card: Card) = (contents and (1L shl card.ordinal)) > 0
+    fun copyAndAddElement(card: Card) = LinkedCardSet(contents or (1L shl card.ordinal()))
+    fun contains(card: Card) = (contents and (1L shl card.ordinal())) > 0
     fun contents() = Deck().filter { contains(it) }
     fun size() = contents.countOneBits()
 }
 
-fun Hand(cards: List<Card>): Hand = Hand(cards.toSet())
-class Hand(cards: Set<Card>): Comparable<Hand> {
+class Hand(cards: List<Card>): Comparable<Hand> {
     val cards =
         if (cards.size >= 5) {
             combinations(cards).maxBy { Hand(it) }
@@ -254,24 +218,6 @@ class Hand(cards: Set<Card>): Comparable<Hand> {
             cards
         }
 
-    fun numericalHierarchy(): Int {
-        val base = hierarchy()
-        return base.first.ordinal * 13 * 13 * 13 * 13 +
-                (base.second.getOrNull(0)?.value?.ordinal ?: 0) * 13 * 13 * 13 +
-                (base.second.getOrNull(1)?.value?.ordinal ?: 0) * 13 * 13 +
-                (base.second.getOrNull(2)?.value?.ordinal ?: 0) * 13 +
-                (base.second.getOrNull(3)?.value?.ordinal ?: 0) +
-                (base.second.getOrNull(4)?.value?.ordinal ?: 0)
-    }
-    fun listHierarchy(): List<Int> {
-        val base = hierarchy()
-        return listOf(base.first.ordinal,
-                (base.second.getOrNull(0)?.value?.ordinal ?: 0),
-                (base.second.getOrNull(1)?.value?.ordinal ?: 0),
-                (base.second.getOrNull(2)?.value?.ordinal ?: 0),
-                (base.second.getOrNull(3)?.value?.ordinal ?: 0),
-                (base.second.getOrNull(4)?.value?.ordinal ?: 0))
-    }
     fun hierarchy(): Pair<Hierarchy, List<Card>> {
         if(isFlush() && isStraight()) return Hierarchy.StraightFlush to
                 cards.setHelper()
@@ -298,7 +244,8 @@ class Hand(cards: Set<Card>): Comparable<Hand> {
 
     private fun isStraight(): Boolean {
         return cards.sorted().zipWithNext().all { (card1, card2) ->
-            (card1.value.ordinal + 1) % 13 == card2.value.ordinal
+            card1.value.ordinal + 1 == card2.value.ordinal ||
+            card2.value == Value.Ace && cards.minOf { it }.value == Value.Two
         }
     }
 
@@ -310,7 +257,7 @@ class Hand(cards: Set<Card>): Comparable<Hand> {
         return cards.groupBy { it.value }.count { it.value.size == 2 } == 2
     }
 
-    override fun compareTo(other: Hand): Int { //todo this is obselete
+    override fun compareTo(other: Hand): Int {
         val first = hierarchy().first.compareTo(other.hierarchy().first)
         val rest = hierarchy().second.zip(other.hierarchy().second).map { (self, other) -> self.compareTo(other) }
         return priorityCompare(listOf(first).plus(rest))
@@ -344,7 +291,7 @@ data class Card(val value: Value, val suit: Suit): Comparable<Card> {
         return value.compareTo(other.value)
     }
 
-    val ordinal = value.ordinal + 13 * suit.ordinal
+    fun ordinal() = value.ordinal + 13 * suit.ordinal
 }
 
 enum class Hierarchy {
@@ -383,7 +330,7 @@ enum class Value {
 }
 
 //finds sets with n values and sorts descending
-private fun Set<Card>.setHelper(num: Int = 1): List<Card> {
+private fun List<Card>.setHelper(num: Int = 1): List<Card> {
     val sets = this.groupBy { it.value }
         .filter {
             it.value.size == num
